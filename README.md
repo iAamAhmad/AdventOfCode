@@ -1,6 +1,6 @@
 # Advent of Code 2023
 
-Welcome to my Advent of Code 2023 repository! This repository contains my solutions and explanations for the challenges presented in the Advent of Code event.
+Welcome to my Advent of Code 2023 repository! This repository contains solutions and explanations for the challenges presented in the Advent of Code event 2023.
 
 Feel free to explore the code and solutions. Happy coding!
 
