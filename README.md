@@ -6,7 +6,7 @@ Feel free to explore the code and solutions. Happy coding!
 
 ## Repository Links
 
-- [Advent of Code 2023 Repository](https://github.com/iAamAhmad/AdventOfCode.git)
+- [Advent of Code 2023 Repository](https://github.com/iAamAhmad/AdventOfCode.gitS)
 
 ## Table of Contents
 
