@@ -1,54 +1,79 @@
-from itertools import count, pairwise
-file__path = "2023\day__22\input.txt"
-with open(file__path, "r") as file:
+from collections import defaultdict
+file_path = "2023\day__22\input.txt"
+with open(file_path, "r") as file:
     data = file.read().strip()
 
-G = data.split("\n")
-START = next((i, j) for i, row in enumerate(G) for j, v in enumerate(row) if v == "S")
-N, M = len(G), len(G[0])
+
+def get_bricks(data):
+    bricks = [
+        list(map(list, zip(*(map(int, pair.split(",")) for pair in row.split("~")))))
+        for row in data.split("\n")
+    ]
+    return sorted(bricks, key=lambda x: x[2])
 
 
-def step(q, pt2=False):
-    nq = set()
-    for _ in range(len(q)):
-        i, j = q.pop()
-        for ni, nj in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)):
-            if pt2 and G[ni % N][nj % M] != "#":
-                nq.add((ni, nj))
-            elif 0 <= ni < N and 0 <= nj < M and G[ni][nj] != "#":
-                nq.add((ni, nj))
-    return nq
+def drop_bricks(bricks):
+    heights = defaultdict(lambda: (-1, 0))
+    supports = {}
+    for i, brick in enumerate(bricks):
+        cur = -1
+        touching = set()
+        (xl, xr), (yl, yr), (zl, zr) = brick
+        for x in range(xl, xr + 1):
+            for y in range(yl, yr + 1):
+                idx, height = heights[x, y]
+                if height + 1 > cur:
+                    cur = height + 1
+                    touching = {idx}
+                elif height + 1 == cur:
+                    touching.add(idx)
+        if drop := zl - cur:
+            brick[2][0] -= drop
+            brick[2][1] -= drop
+        for x in range(xl, xr + 1):
+            for y in range(yl, yr + 1):
+                heights[x, y] = (i, brick[2][1])
+        supports[i] = touching
+    return supports
 
 
-def nth_term(seq, n):
-    # https://www.radfordmathematics.com/algebra/sequences-series/difference-method-sequences/quadratic-sequences.html
-    d1, d2 = (b - a for a, b in pairwise(seq))
-    sd = d2 - d1
-    x, y, z = sd, d1, seq[0]
-    a = x >> 1
-    b = y - (3 * a)
-    c = z - b - a
-    return (a * n * n) + (b * n) + c
+def reachable(g, start):
+    indeg = [0] * len(g)
+    for vs in g:
+        for v in vs:
+            indeg[v] += 1
+    res = 0
+    q = [start]
+    while q:
+        res += 1
+        u = q.pop()
+        for v in g[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0:
+                q.append(v)
+    return res - 1
 
 
 def part_one():
-    q = {START}
-    for _ in range(64):
-        q = step(q)
-    return len(q)
+    bricks = get_bricks(data)
+    supports = drop_bricks(bricks)
+    res = set()
+    for touching in supports.values():
+        if len(touching) == 1 and (idx := next(iter(touching))) != -1:
+            res.add(idx)
+    return len(bricks) - len(res)
 
 
 def part_two():
-    q = {START}
-    seq = []
-    for i in count(1):
-        q = step(q, pt2=True)
-        if i % N == 26501365 % N:
-            seq.append(len(q))
-            if len(seq) == 3:
-                break
-    return nth_term(seq, (26501365 // N) + 1)
+    bricks = get_bricks(data)
+    supports = drop_bricks(bricks)
+    g = [[] for _ in bricks]
+    for i, touching in supports.items():
+        for u in touching:
+            if u != -1:
+                g[u].append(i)
+    return sum(reachable(g, i) for i in range(len(bricks)))
 
 
-print(f"Part 1: {part_one()}")  # 3722
-print(f"Part 2: {part_two()}")  # 614864614526014
+print(f"Part 1: {part_one()}")  # 416
+print(f"Part 2: {part_two()}")  # 60963
