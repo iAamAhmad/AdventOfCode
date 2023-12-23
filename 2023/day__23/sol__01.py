@@ -1,54 +1,76 @@
-from itertools import count, pairwise
-file__path = "2023\day__22\input.txt"
-with open(file__path, "r") as file:
-    data = file.read().strip()
+from collections import defaultdict, deque
+from copy import deepcopy
 
-G = data.split("\n")
-START = next((i, j) for i, row in enumerate(G) for j, v in enumerate(row) if v == "S")
-N, M = len(G), len(G[0])
+START_X = 0
+START_Y = 1
 
+grid = dict()
+file_path = "2023\day__23\input.txt"
+with open(file_path, "r") as file:
+    inp = file.read().strip().split("\n")
 
-def step(q, pt2=False):
-    nq = set()
-    for _ in range(len(q)):
-        i, j = q.pop()
-        for ni, nj in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)):
-            if pt2 and G[ni % N][nj % M] != "#":
-                nq.add((ni, nj))
-            elif 0 <= ni < N and 0 <= nj < M and G[ni][nj] != "#":
-                nq.add((ni, nj))
-    return nq
+for r, row in enumerate(inp):
+    for c, cell in enumerate(row):
+        grid[r, c] = cell
 
+nr = len(inp)
+nc = len(inp[0])
 
-def nth_term(seq, n):
-    # https://www.radfordmathematics.com/algebra/sequences-series/difference-method-sequences/quadratic-sequences.html
-    d1, d2 = (b - a for a, b in pairwise(seq))
-    sd = d2 - d1
-    x, y, z = sd, d1, seq[0]
-    a = x >> 1
-    b = y - (3 * a)
-    c = z - b - a
-    return (a * n * n) + (b * n) + c
+splits = set()
+for r in range(1, nr - 1):
+    for c in range(1, nc - 1):
+        if (
+            grid[r, c] == "."
+            and sum(
+                grid[r + dr, c + dc] == "#"
+                for (dr, dc) in [(1, 0), (-1, 0), (0, 1), (0, -1)]
+            )
+            < 2
+        ):
+            splits.add((r, c))
+splits.add((0, 1))
+splits.add((nr - 1, nc - 2))
 
+bfs_q = deque()
+bfs_q.append((0, (START_X, START_Y), (START_X, START_Y)))
+explored = set()
+directions = {">": (0, 1), "<": (0, -1), "^": (-1, 0), "v": (1, 0)}
+edges = defaultdict(set)
+reverse_edges = deepcopy(edges)
 
-def part_one():
-    q = {START}
-    for _ in range(64):
-        q = step(q)
-    return len(q)
+while bfs_q:
+    steps, pos, prev_split = bfs_q.pop()
+    if pos != prev_split and pos in splits:
+        bfs_q.append((0, pos, pos))
+        edges[prev_split].add((pos, steps))
+        reverse_edges[pos].add((prev_split, steps))
+    else:
+        for dr, dc in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            new_pos = (pos[0] + dr, pos[1] + dc)
+            if new_pos not in grid or grid[new_pos] == "#":
+                continue
+            if grid[new_pos] in directions and (dr, dc) != directions[grid[new_pos]]:
+                continue
+            if new_pos in splits or new_pos not in explored:
+                explored.add(new_pos)
+                bfs_q.append((steps + 1, new_pos, prev_split))
 
+def find_max(use_reverse: bool) -> int:
+    q = [(0, (0, 1), {(0, 1)})]
+    max_steps = 0
+    while q:
+        steps, pos, path = q.pop()
+        if pos == (nr - 1, nc - 2):
+            max_steps = max(steps, max_steps)
+        else:
+            neighbors = edges[pos]
+            if use_reverse:
+                neighbors = neighbors.union(reverse_edges[pos])
+            for neighbor, weight in neighbors:
+                if neighbor in path:
+                    continue
+                q.append((steps + weight, neighbor, path.union({neighbor})))
+    return max_steps
 
-def part_two():
-    q = {START}
-    seq = []
-    for i in count(1):
-        q = step(q, pt2=True)
-        if i % N == 26501365 % N:
-            seq.append(len(q))
-            if len(seq) == 3:
-                break
-    return nth_term(seq, (26501365 // N) + 1)
-
-
-print(f"Part 1: {part_one()}")  # 3722
-print(f"Part 2: {part_two()}")  # 614864614526014
+print("Part 1:", find_max(False))
+print("Part 2:", find_max(True))
