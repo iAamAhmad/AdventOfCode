@@ -1,54 +1,48 @@
-from itertools import count, pairwise
-file__path = "2023\day__22\input.txt"
-with open(file__path, "r") as file:
-    data = file.read().strip()
-
-G = data.split("\n")
-START = next((i, j) for i, row in enumerate(G) for j, v in enumerate(row) if v == "S")
-N, M = len(G), len(G[0])
-
-
-def step(q, pt2=False):
-    nq = set()
-    for _ in range(len(q)):
-        i, j = q.pop()
-        for ni, nj in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)):
-            if pt2 and G[ni % N][nj % M] != "#":
-                nq.add((ni, nj))
-            elif 0 <= ni < N and 0 <= nj < M and G[ni][nj] != "#":
-                nq.add((ni, nj))
-    return nq
-
-
-def nth_term(seq, n):
-    # https://www.radfordmathematics.com/algebra/sequences-series/difference-method-sequences/quadratic-sequences.html
-    d1, d2 = (b - a for a, b in pairwise(seq))
-    sd = d2 - d1
-    x, y, z = sd, d1, seq[0]
-    a = x >> 1
-    b = y - (3 * a)
-    c = z - b - a
-    return (a * n * n) + (b * n) + c
-
-
-def part_one():
-    q = {START}
-    for _ in range(64):
-        q = step(q)
-    return len(q)
-
-
-def part_two():
-    q = {START}
-    seq = []
-    for i in count(1):
-        q = step(q, pt2=True)
-        if i % N == 26501365 % N:
-            seq.append(len(q))
-            if len(seq) == 3:
-                break
-    return nth_term(seq, (26501365 // N) + 1)
-
-
-print(f"Part 1: {part_one()}")  # 3722
-print(f"Part 2: {part_two()}")  # 614864614526014
+import itertools
+import typing
+from collections import defaultdict, deque
+import math
+# file_path = 'example.txt'
+file_path = "2023\day__24\input.txt"
+with open(file_path) as f:
+    lines = f.read().strip().split('\n')
+    entries = []
+    for line in lines:
+        fp = line.split('@')[0]
+        lp = line.split('@')[1]
+        entries.append([
+            int(fp.split(',')[0]), int(fp.split(',')[1]), int(fp.split(',')[2]),
+            int(lp.split(',')[0]), int(lp.split(',')[1]), int(lp.split(',')[2])
+        ])
+# print(entries)
+def intersect_xy(line1: typing.List[int], line2: typing.List[int]):
+    A_ = [line1[3], -line2[3], line1[4], -line2[4]]
+    b_ = [line2[0] - line1[0], line2[1] - line1[1]]
+    if A_[0] == 0:
+        if A_[2] == 0:
+            return None
+        assert A_[1] != 0
+        t2 = b_[0] / A_[1]
+        t1 = (b_[1] - A_[3] * t2) / A_[0]  # todo opt
+        return (line2[0] + t2 * line2[3], line2[1] + t2 * line2[4]) if t2 > 0 and t1 > 0 else None
+    else:
+        A_[3] -= (A_[2] / A_[0]) * A_[1]
+        b_[1] -= (A_[2] / A_[0]) * b_[0]
+        A_[2] = 0
+        if A_[3] == 0:
+            return None
+        t2 = b_[1] / A_[3]
+        t1 = (b_[0] - A_[1] * t2) / A_[0]  # opt
+        return (line2[0] + t2 * line2[3], line2[1] + t2 * line2[4]) if t2 > 0 and t1 > 0 else None
+    # solve x1 + t1*v1x = x2 + t2*v2x
+    #       y1 + t1*v1y = y2 + t2*v2y
+    # v1x -v2x | x2 - x1
+    # v1y -v2y | y2 - y1
+accu = 0
+for a, b in itertools.combinations(entries, 2):
+    inti = intersect_xy(a, b)
+    # if inti is not None and 7 <= inti[0] <= 27 and 7 <= inti[1] <= 27:
+    if inti is not None and 200000000000000 <= inti[0] <= 400000000000000 and 200000000000000 <= inti[1] <= 400000000000000:
+        accu += 1
+    # print(a, b, intersect_xy(a, b))
+print(accu) #part_1
