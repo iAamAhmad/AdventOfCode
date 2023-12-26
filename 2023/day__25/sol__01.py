@@ -35,3 +35,4 @@ for x in [list(E.keys())[0]]:
       if cut_value == 3:
         print(len(L)*len(R))
         break
+#  Three four
